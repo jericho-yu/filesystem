@@ -30,6 +30,31 @@ func NewFileSystemByAbs(dir string) (*FileSystem, error) {
 	return ins.init()
 }
 
+// SetDirByRelative 设置路径：相对路径
+func (receiver *FileSystem) SetDirByRelative(dir string) *FileSystem {
+	receiver.dir = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))
+	return receiver
+}
+
+// SetDir 设置路径：绝对路径
+func (receiver *FileSystem) SetDirByAbs(dir string) *FileSystem {
+	receiver.dir = dir
+	return receiver
+}
+
+func (receiver *FileSystem) Join(dir string) *FileSystem {
+	receiver.dir = filepath.Join(receiver.dir, dir)
+	return receiver
+}
+
+// Joins 增加若干路径
+func (receiver *FileSystem) Joins(dir ...string) *FileSystem {
+	for _, v := range dir {
+		receiver.Join(v)
+	}
+	return receiver
+}
+
 func (FileSystem) GetRootPath() string {
 	rootPath, _ := filepath.Abs(".")
 	return rootPath
