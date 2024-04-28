@@ -352,3 +352,21 @@ func (receiver *FileSystem) CopyDir(dstDir string, abs bool) error {
 
 	return nil
 }
+
+// WriteFile 写入文件
+func (receiver *FileSystem) Write(content []byte) (err error) {
+	// 打开文件
+	file, err := os.OpenFile(receiver.GetDir(), os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	// 写入内容
+	_, err = file.Write(content)
+	if err != nil {
+		return
+	}
+
+	return
+}
