@@ -12,13 +12,21 @@ import (
 	"strings"
 )
 
-// FileSystem 文件系统
-type FileSystem struct {
-	dir     string
-	IsExist bool
-	IsDir   bool
-	IsFile  bool
-}
+type (
+	// FileSystem 文件系统
+	FileSystem struct {
+		dir     string
+		IsExist bool
+		IsDir   bool
+		IsFile  bool
+	}
+
+	// FileSystemCopyFileTarget 拷贝文件目标
+	FileSystemCopyFilesTarget struct {
+		Src         *FileSystem
+		DstFilename string
+	}
+)
 
 // NewFileSystemByRelative 实例化：文件系统（相对路径）
 func NewFileSystemByRelative(dir string) *FileSystem {
@@ -203,12 +211,23 @@ func (receiver *FileSystem) DelFile() error {
 }
 
 // CopyFile 拷贝单文件
-func (receiver *FileSystem) CopyFile(dstFile string, abs bool) error {
-	var fs *FileSystem
+func (receiver *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error {
+	var (
+		err         error
+		srcFile     *os.File
+		srcFilename string
+		dst         *FileSystem
+	)
 
 	// 如果是相对路径
 	if !abs {
-		dstFile = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dstFile))
+		dst = NewFileSystemByRelative(dstDir)
+	} else {
+		dst = NewFileSystemByAbs(dstDir)
+	}
+	// 创建目标文件夹
+	if !dst.IsDir {
+		dst.MkDir()
 	}
 
 	// 判断源是否是文件
@@ -217,35 +236,36 @@ func (receiver *FileSystem) CopyFile(dstFile string, abs bool) error {
 	}
 
 	// 打开源文件
-	src, err := os.Open(receiver.GetDir())
+	srcFile, err = os.Open(receiver.GetDir())
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer srcFile.Close()
 
-	// 检查文件夹是否存在
-	fs = NewFileSystemByAbs(filepath.Dir(dstFile))
-	if !fs.IsDir {
-		fs.MkDir()
+	if dstFilename == "" {
+		srcFilename = filepath.Base(receiver.GetDir())
+		dst.Join(srcFilename)
+	} else {
+		dst.Join(dstFilename)
 	}
 
 	// 创建目标文件
-	dst, err := os.Create(dstFile)
+	dstFile, err := os.Create(dst.GetDir())
 	if err != nil {
 		return err
 	}
-	defer dst.Close()
+	defer dstFile.Close()
 
-	fmt.Printf("拷贝文件：%s ==>  %s\n", receiver.GetDir(), dstFile)
+	fmt.Printf("拷贝文件：%s ==>  %s\n", receiver.GetDir(), dstDir)
 
 	// 拷贝内容
-	_, err = io.Copy(dst, src)
+	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		return err
 	}
 
 	// 确保所有内容都已写入磁盘
-	err = dst.Sync()
+	err = dstFile.Sync()
 	if err != nil {
 		return err
 	}
@@ -254,8 +274,11 @@ func (receiver *FileSystem) CopyFile(dstFile string, abs bool) error {
 }
 
 // CopyFiles 拷贝多个文件
-func (FileSystem) CopyFiles(srcFiles []*FileSystem, dstDir string, abs bool) error {
-	var dst *FileSystem
+func (FileSystem) CopyFiles(srcFiles []*FileSystemCopyFilesTarget, dstDir string, abs bool) error {
+	var (
+		err error
+		dst *FileSystem
+	)
 
 	if abs {
 		dst = NewFileSystemByAbs(dstDir)
@@ -269,10 +292,14 @@ func (FileSystem) CopyFiles(srcFiles []*FileSystem, dstDir string, abs bool) err
 
 	for _, srcFile := range srcFiles {
 		// 获取源文件名
-		filename := filepath.Base(srcFile.GetDir())
+		srcFilename := filepath.Base(srcFile.Src.GetDir())
 
 		// 拷贝文件
-		err := srcFile.CopyFile(filepath.Join(dst.GetDir(), filename), true)
+		if srcFile.DstFilename != "" {
+			err = srcFile.Src.CopyFile(dst.GetDir(), srcFile.DstFilename, true)
+		} else {
+			err = srcFile.Src.CopyFile(dst.GetDir(), srcFilename, true)
+		}
 		if err != nil {
 			return err
 		}
@@ -311,13 +338,10 @@ func (receiver *FileSystem) CopyDir(dstDir string, abs bool) error {
 		}
 
 		srcFilename = filepath.Base(srcPath)
-
 		src = NewFileSystemByAbs(srcPath)
 
-		fmt.Println(dst.GetDir())
-
 		if src.IsFile {
-			return src.CopyFile(dst.Join(srcFilename).GetDir(), true)
+			return src.CopyFile(dst.GetDir(), srcFilename, true)
 		}
 
 		return nil
