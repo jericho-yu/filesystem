@@ -1,7 +1,9 @@
 package filesystem
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -19,13 +21,13 @@ type FileSystem struct {
 }
 
 // NewFileSystemByRelative 实例化：文件系统（相对路径）
-func NewFileSystemByRelative(dir string) (*FileSystem, error) {
+func NewFileSystemByRelative(dir string) *FileSystem {
 	ins := &FileSystem{dir: filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))}
 	return ins.init()
 }
 
 // NewFileSystemByAbs 实例化：文件系统（绝对路径）
-func NewFileSystemByAbs(dir string) (*FileSystem, error) {
+func NewFileSystemByAbs(dir string) *FileSystem {
 	ins := &FileSystem{dir: dir}
 	return ins.init()
 }
@@ -33,17 +35,23 @@ func NewFileSystemByAbs(dir string) (*FileSystem, error) {
 // SetDirByRelative 设置路径：相对路径
 func (receiver *FileSystem) SetDirByRelative(dir string) *FileSystem {
 	receiver.dir = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))
+
+	receiver.init()
 	return receiver
 }
 
 // SetDir 设置路径：绝对路径
 func (receiver *FileSystem) SetDirByAbs(dir string) *FileSystem {
 	receiver.dir = dir
+
+	receiver.init()
 	return receiver
 }
 
 func (receiver *FileSystem) Join(dir string) *FileSystem {
 	receiver.dir = filepath.Join(receiver.dir, dir)
+
+	receiver.init()
 	return receiver
 }
 
@@ -52,6 +60,8 @@ func (receiver *FileSystem) Joins(dir ...string) *FileSystem {
 	for _, v := range dir {
 		receiver.Join(v)
 	}
+
+	receiver.init()
 	return receiver
 }
 
@@ -100,7 +110,7 @@ func getGoRunPath() string {
 }
 
 // 初始化
-func (receiver *FileSystem) init() (*FileSystem, error) {
+func (receiver *FileSystem) init() *FileSystem {
 	var e error
 	receiver.IsExist, e = receiver.Exist() // 检查文件是否存在
 	if e != nil {
@@ -112,7 +122,7 @@ func (receiver *FileSystem) init() (*FileSystem, error) {
 			panic(fmt.Errorf("检查路径类型错误：%s", e.Error()))
 		}
 	}
-	return receiver, nil
+	return receiver
 }
 
 // Exist 检查文件是否存在
@@ -189,5 +199,132 @@ func (receiver *FileSystem) DelFile() error {
 	if e != nil {
 		return e
 	}
+	return nil
+}
+
+// CopyFile 拷贝单文件
+func (receiver *FileSystem) CopyFile(dstFile string, abs bool) error {
+	var fs *FileSystem
+
+	// 如果是相对路径
+	if !abs {
+		dstFile = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dstFile))
+	}
+
+	// 判断源是否是文件
+	if !receiver.IsFile {
+		return errors.New("源文件不存在")
+	}
+
+	// 打开源文件
+	src, err := os.Open(receiver.GetDir())
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	// 检查文件夹是否存在
+	fs = NewFileSystemByAbs(filepath.Dir(dstFile))
+	if !fs.IsDir {
+		fs.MkDir()
+	}
+
+	// 创建目标文件
+	dst, err := os.Create(dstFile)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	fmt.Printf("拷贝文件：%s ==>  %s\n", receiver.GetDir(), dstFile)
+
+	// 拷贝内容
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return err
+	}
+
+	// 确保所有内容都已写入磁盘
+	err = dst.Sync()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CopyFiles 拷贝多个文件
+func (FileSystem) CopyFiles(srcFiles []*FileSystem, dstDir string, abs bool) error {
+	var dst *FileSystem
+
+	if abs {
+		dst = NewFileSystemByAbs(dstDir)
+	} else {
+		dst = NewFileSystemByRelative(dstDir)
+	}
+
+	if !dst.IsDir {
+		dst.MkDir()
+	}
+
+	for _, srcFile := range srcFiles {
+		// 获取源文件名
+		filename := filepath.Base(srcFile.GetDir())
+
+		// 拷贝文件
+		err := srcFile.CopyFile(filepath.Join(dst.GetDir(), filename), true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CopyDir 拷贝目录
+func (receiver *FileSystem) CopyDir(dstDir string, abs bool) error {
+	// 判断是否是目录
+	if !receiver.IsDir {
+		return errors.New("源目录不存在")
+	}
+
+	// 遍历源目录
+	err := filepath.Walk(receiver.GetDir(), func(srcPath string, info os.FileInfo, err error) error {
+		var (
+			src         *FileSystem
+			dst         *FileSystem
+			srcFilename string
+		)
+
+		if abs {
+			dst = NewFileSystemByAbs(dstDir)
+		} else {
+			dst = NewFileSystemByRelative(dstDir)
+		}
+
+		if !dst.IsDir {
+			dst.MkDir()
+		}
+
+		if err != nil {
+			return err
+		}
+
+		srcFilename = filepath.Base(srcPath)
+
+		src = NewFileSystemByAbs(srcPath)
+
+		fmt.Println(dst.GetDir())
+
+		if src.IsFile {
+			return src.CopyFile(dst.Join(srcFilename).GetDir(), true)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
