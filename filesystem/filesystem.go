@@ -41,36 +41,36 @@ func NewFileSystemByAbs(dir string) *FileSystem {
 }
 
 // SetDirByRelative 设置路径：相对路径
-func (receiver *FileSystem) SetDirByRelative(dir string) *FileSystem {
-	receiver.dir = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))
+func (r *FileSystem) SetDirByRelative(dir string) *FileSystem {
+	r.dir = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))
 
-	receiver.init()
-	return receiver
+	r.init()
+	return r
 }
 
 // SetDir 设置路径：绝对路径
-func (receiver *FileSystem) SetDirByAbs(dir string) *FileSystem {
-	receiver.dir = dir
+func (r *FileSystem) SetDirByAbs(dir string) *FileSystem {
+	r.dir = dir
 
-	receiver.init()
-	return receiver
+	r.init()
+	return r
 }
 
-func (receiver *FileSystem) Join(dir string) *FileSystem {
-	receiver.dir = filepath.Join(receiver.dir, dir)
+func (r *FileSystem) Join(dir string) *FileSystem {
+	r.dir = filepath.Join(r.dir, dir)
 
-	receiver.init()
-	return receiver
+	r.init()
+	return r
 }
 
 // Joins 增加若干路径
-func (receiver *FileSystem) Joins(dir ...string) *FileSystem {
+func (r *FileSystem) Joins(dir ...string) *FileSystem {
 	for _, v := range dir {
-		receiver.Join(v)
+		r.Join(v)
 	}
 
-	receiver.init()
-	return receiver
+	r.init()
+	return r
 }
 
 func (FileSystem) GetRootPath() string {
@@ -118,24 +118,24 @@ func getGoRunPath() string {
 }
 
 // 初始化
-func (receiver *FileSystem) init() *FileSystem {
+func (r *FileSystem) init() *FileSystem {
 	var e error
-	receiver.IsExist, e = receiver.Exist() // 检查文件是否存在
+	r.IsExist, e = r.Exist() // 检查文件是否存在
 	if e != nil {
 		panic(fmt.Errorf("检查路径错误：%s", e.Error()))
 	}
-	if receiver.IsExist {
-		e = receiver.CheckPathType() // 检查路径类型
+	if r.IsExist {
+		e = r.CheckPathType() // 检查路径类型
 		if e != nil {
 			panic(fmt.Errorf("检查路径类型错误：%s", e.Error()))
 		}
 	}
-	return receiver
+	return r
 }
 
 // Exist 检查文件是否存在
-func (receiver *FileSystem) Exist() (bool, error) {
-	_, err := os.Stat(receiver.dir)
+func (r *FileSystem) Exist() (bool, error) {
+	_, err := os.Stat(r.dir)
 	if err == nil {
 		return true, nil
 	}
@@ -146,9 +146,9 @@ func (receiver *FileSystem) Exist() (bool, error) {
 }
 
 // MkDir 创建文件夹
-func (receiver *FileSystem) MkDir() error {
-	if !receiver.IsExist {
-		if e := os.MkdirAll(receiver.dir, os.ModePerm); e != nil {
+func (r *FileSystem) MkDir() error {
+	if !r.IsExist {
+		if e := os.MkdirAll(r.dir, os.ModePerm); e != nil {
 			return e
 		}
 	}
@@ -157,44 +157,44 @@ func (receiver *FileSystem) MkDir() error {
 }
 
 // GetDir 获取当前路径
-func (receiver *FileSystem) GetDir() string {
-	return receiver.dir
+func (r *FileSystem) GetDir() string {
+	return r.dir
 }
 
 // CheckPathType 判断一个路径是文件还是文件夹
-func (receiver *FileSystem) CheckPathType() error {
-	info, e := os.Stat(receiver.dir)
+func (r *FileSystem) CheckPathType() error {
+	info, e := os.Stat(r.dir)
 	if e != nil {
 		return e
 	}
 
 	if info.IsDir() {
-		receiver.IsDir = true
-		receiver.IsFile = !receiver.IsDir
+		r.IsDir = true
+		r.IsFile = !r.IsDir
 	} else {
-		receiver.IsFile = true
-		receiver.IsDir = !receiver.IsFile
+		r.IsFile = true
+		r.IsDir = !r.IsFile
 	}
 
 	return nil
 }
 
 // Delete 删除文件或文件夹
-func (receiver *FileSystem) Delete() error {
-	if receiver.IsExist {
-		if receiver.IsDir {
-			return receiver.DelDir()
+func (r *FileSystem) Delete() error {
+	if r.IsExist {
+		if r.IsDir {
+			return r.DelDir()
 		}
-		if receiver.IsFile {
-			return receiver.DelFile()
+		if r.IsFile {
+			return r.DelFile()
 		}
 	}
 	return nil
 }
 
 // DelDir 删除文件夹
-func (receiver *FileSystem) DelDir() error {
-	err := os.RemoveAll(receiver.dir)
+func (r *FileSystem) DelDir() error {
+	err := os.RemoveAll(r.dir)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (receiver *FileSystem) DelDir() error {
 }
 
 // DelFile 删除文件
-func (receiver *FileSystem) DelFile() error {
+func (r *FileSystem) DelFile() error {
 	e := os.Remove("path_to_your_file")
 	if e != nil {
 		return e
@@ -211,7 +211,7 @@ func (receiver *FileSystem) DelFile() error {
 }
 
 // CopyFile 拷贝单文件
-func (receiver *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error {
+func (r *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error {
 	var (
 		err         error
 		srcFile     *os.File
@@ -231,19 +231,19 @@ func (receiver *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error
 	}
 
 	// 判断源是否是文件
-	if !receiver.IsFile {
+	if !r.IsFile {
 		return errors.New("源文件不存在")
 	}
 
 	// 打开源文件
-	srcFile, err = os.Open(receiver.GetDir())
+	srcFile, err = os.Open(r.GetDir())
 	if err != nil {
 		return err
 	}
 	defer srcFile.Close()
 
 	if dstFilename == "" {
-		srcFilename = filepath.Base(receiver.GetDir())
+		srcFilename = filepath.Base(r.GetDir())
 		dst.Join(srcFilename)
 	} else {
 		dst.Join(dstFilename)
@@ -256,7 +256,7 @@ func (receiver *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error
 	}
 	defer dstFile.Close()
 
-	fmt.Printf("拷贝文件：%s ==>  %s\n", receiver.GetDir(), dstDir)
+	fmt.Printf("拷贝文件：%s ==>  %s\n", r.GetDir(), dstDir)
 
 	// 拷贝内容
 	_, err = io.Copy(dstFile, srcFile)
@@ -309,14 +309,14 @@ func (FileSystem) CopyFiles(srcFiles []*FileSystemCopyFilesTarget, dstDir string
 }
 
 // CopyDir 拷贝目录
-func (receiver *FileSystem) CopyDir(dstDir string, abs bool) error {
+func (r *FileSystem) CopyDir(dstDir string, abs bool) error {
 	// 判断是否是目录
-	if !receiver.IsDir {
+	if !r.IsDir {
 		return errors.New("源目录不存在")
 	}
 
 	// 遍历源目录
-	err := filepath.Walk(receiver.GetDir(), func(srcPath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(r.GetDir(), func(srcPath string, info os.FileInfo, err error) error {
 		var (
 			src         *FileSystem
 			dst         *FileSystem
@@ -353,10 +353,10 @@ func (receiver *FileSystem) CopyDir(dstDir string, abs bool) error {
 	return nil
 }
 
-// WriteFile 写入文件
-func (receiver *FileSystem) Write(content []byte) (err error) {
+// WriteBytes 写入文件：bytes
+func (r *FileSystem) WriteBytes(content []byte) (err error) {
 	// 打开文件
-	file, err := os.OpenFile(receiver.GetDir(), os.O_RDWR|os.O_CREATE, 0644)
+	file, err := os.OpenFile(r.GetDir(), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return
 	}
@@ -369,4 +369,20 @@ func (receiver *FileSystem) Write(content []byte) (err error) {
 	}
 
 	return
+}
+
+// WriteString 写入文件：string
+func (r *FileSystem) WriteString(content string) (err error) {
+	return r.WriteBytes([]byte(content))
+}
+
+// WriteIoReader 写入文件：IoReader
+func (r *FileSystem) WriteIoReader(content io.Reader) (written int64, err error) {
+	dst, err := os.Create(r.dir)
+	if err != nil {
+		return 0, err
+	}
+	defer dst.Close()
+
+	return io.Copy(dst, content)
 }
