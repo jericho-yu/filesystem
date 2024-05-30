@@ -354,37 +354,45 @@ func (r *FileSystem) CopyDir(dstDir string, abs bool) error {
 }
 
 // WriteBytes 写入文件：bytes
-func (r *FileSystem) WriteBytes(content []byte) (err error) {
+func (r *FileSystem) WriteBytes(content []byte) (int64, error) {
+	var written int
 	// 打开文件
 	file, err := os.OpenFile(r.GetDir(), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		return
+		return 0, err
 	}
 	defer file.Close()
 
 	// 写入内容
-	_, err = file.Write(content)
+	written, err = file.Write(content)
+	if err != nil {
+		return 0, err
+	}
 
-	return
+	return int64(written), nil
 }
 
 // WriteAppend 追加写入文件
-func (r *FileSystem) WriteAppend(content []byte) (e error) {
+func (r *FileSystem) WriteAppend(content []byte) (int64, error) {
+	var written int
 	// Open the file in append mode.
 	file, e := os.OpenFile(r.GetDir(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if e != nil {
-		return
+		return 0, e
 	}
 	defer file.Close()
 
 	// 追加写入内容
-	_, e = file.Write(content)
+	written, e = file.Write(content)
+	if e != nil {
+		return 0, e
+	}
 
-	return
+	return int64(written), nil
 }
 
 // WriteString 写入文件：string
-func (r *FileSystem) WriteString(content string) (err error) {
+func (r *FileSystem) WriteString(content string) (int64, error) {
 	return r.WriteBytes([]byte(content))
 }
 
