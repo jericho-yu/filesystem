@@ -372,8 +372,24 @@ func (r *FileSystem) WriteBytes(content []byte) (int64, error) {
 	return int64(written), nil
 }
 
-// WriteAppend 追加写入文件
-func (r *FileSystem) WriteAppend(content []byte) (int64, error) {
+// WriteString 写入文件：string
+func (r *FileSystem) WriteString(content string) (int64, error) {
+	return r.WriteBytes([]byte(content))
+}
+
+// WriteIoReader 写入文件：io.Reader
+func (r *FileSystem) WriteIoReader(content io.Reader) (written int64, err error) {
+	dst, err := os.Create(r.dir)
+	if err != nil {
+		return 0, err
+	}
+	defer dst.Close()
+
+	return io.Copy(dst, content)
+}
+
+// WriteBytesAppend 追加写入文件：bytes
+func (r *FileSystem) WriteBytesAppend(content []byte) (int64, error) {
 	var written int
 	// Open the file in append mode.
 	file, e := os.OpenFile(r.GetDir(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -391,18 +407,29 @@ func (r *FileSystem) WriteAppend(content []byte) (int64, error) {
 	return int64(written), nil
 }
 
-// WriteString 写入文件：string
-func (r *FileSystem) WriteString(content string) (int64, error) {
-	return r.WriteBytes([]byte(content))
+// WriteStringAppend 追加写入文件：string
+func (r *FileSystem) WriteStringAppend(content string) (int64, error) {
+	return r.WriteBytesAppend([]byte(content))
 }
 
-// WriteIoReader 写入文件：IoReader
-func (r *FileSystem) WriteIoReader(content io.Reader) (written int64, err error) {
-	dst, err := os.Create(r.dir)
+// WriteIoReaderAppend 追加写入文件：io.Reader
+func (r *FileSystem) WriteIoReaderAppend(content io.Reader) (int64, error) {
+	var written int
+	dst, err := os.OpenFile(r.dir, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return 0, err
 	}
 	defer dst.Close()
 
-	return io.Copy(dst, content)
+	c, err := io.ReadAll(content)
+	if err != nil {
+		return 0, err
+	}
+
+	written, err = dst.Write(c)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(written), nil
 }
