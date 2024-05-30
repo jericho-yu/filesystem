@@ -210,6 +210,11 @@ func (r *FileSystem) DelFile() error {
 	return nil
 }
 
+// Read 读取文件
+func (r *FileSystem) Read() ([]byte, error) {
+	return os.ReadFile(r.dir)
+}
+
 // CopyFile 拷贝单文件
 func (r *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error {
 	var (
