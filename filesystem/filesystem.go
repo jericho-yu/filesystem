@@ -364,9 +364,21 @@ func (r *FileSystem) WriteBytes(content []byte) (err error) {
 
 	// 写入内容
 	_, err = file.Write(content)
-	if err != nil {
+
+	return
+}
+
+// WriteAppend 追加写入文件
+func (r *FileSystem) WriteAppend(content []byte) (e error) {
+	// Open the file in append mode.
+	file, e := os.OpenFile(r.GetDir(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if e != nil {
 		return
 	}
+	defer file.Close()
+
+	// 追加写入内容
+	_, e = file.Write(content)
 
 	return
 }
