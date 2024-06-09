@@ -40,6 +40,12 @@ func NewFileSystemByAbs(dir string) *FileSystem {
 	return ins.init()
 }
 
+// Copy 复制一个新的对象
+func (r *FileSystem) Copy() *FileSystem {
+	copied := *r
+	return &copied
+}
+
 // SetDirByRelative 设置路径：相对路径
 func (r *FileSystem) SetDirByRelative(dir string) *FileSystem {
 	r.dir = filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))
