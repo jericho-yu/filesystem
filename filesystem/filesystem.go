@@ -209,7 +209,7 @@ func (r *FileSystem) DelDir() error {
 
 // DelFile 删除文件
 func (r *FileSystem) DelFile() error {
-	e := os.Remove("path_to_your_file")
+	e := os.Remove(r.dir)
 	if e != nil {
 		return e
 	}
