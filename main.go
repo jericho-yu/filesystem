@@ -10,7 +10,7 @@ func main() {
 		src *filesystem.FileSystem
 	)
 
-	src = filesystem.NewFileSystemByRelative("a")
+	src = filesystem.FileSystemApp.NewByRelative("a")
 	e = src.CopyDir("b", false)
 
 	if e != nil {

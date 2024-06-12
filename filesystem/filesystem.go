@@ -28,14 +28,18 @@ type (
 	}
 )
 
-// NewFileSystemByRelative 实例化：文件系统（相对路径）
-func NewFileSystemByRelative(dir string) *FileSystem {
+var (
+	FileSystemApp FileSystem
+)
+
+// NewByRelative 实例化：文件系统（相对路径）
+func (FileSystem) NewByRelative(dir string) *FileSystem {
 	ins := &FileSystem{dir: filepath.Clean(filepath.Join(FileSystem{}.GetRootPath(), dir))}
 	return ins.init()
 }
 
-// NewFileSystemByAbs 实例化：文件系统（绝对路径）
-func NewFileSystemByAbs(dir string) *FileSystem {
+// FileSystemApp.NewByAbs 实例化：文件系统（绝对路径）
+func (FileSystem) NewByAbs(dir string) *FileSystem {
 	ins := &FileSystem{dir: dir}
 	return ins.init()
 }
@@ -226,9 +230,9 @@ func (r *FileSystem) CopyFile(dstDir, dstFilename string, abs bool) error {
 
 	// 如果是相对路径
 	if !abs {
-		dst = NewFileSystemByRelative(dstDir)
+		dst = FileSystemApp.NewByRelative(dstDir)
 	} else {
-		dst = NewFileSystemByAbs(dstDir)
+		dst = FileSystemApp.NewByAbs(dstDir)
 	}
 	// 创建目标文件夹
 	if !dst.IsDir {
@@ -286,9 +290,9 @@ func (FileSystem) CopyFiles(srcFiles []*FileSystemCopyFilesTarget, dstDir string
 	)
 
 	if abs {
-		dst = NewFileSystemByAbs(dstDir)
+		dst = FileSystemApp.NewByAbs(dstDir)
 	} else {
-		dst = NewFileSystemByRelative(dstDir)
+		dst = FileSystemApp.NewByRelative(dstDir)
 	}
 
 	if !dst.IsDir {
@@ -329,9 +333,9 @@ func (r *FileSystem) CopyDir(dstDir string, abs bool) error {
 		)
 
 		if abs {
-			dst = NewFileSystemByAbs(dstDir)
+			dst = FileSystemApp.NewByAbs(dstDir)
 		} else {
-			dst = NewFileSystemByRelative(dstDir)
+			dst = FileSystemApp.NewByRelative(dstDir)
 		}
 
 		if !dst.IsDir {
@@ -343,7 +347,7 @@ func (r *FileSystem) CopyDir(dstDir string, abs bool) error {
 		}
 
 		srcFilename = filepath.Base(srcPath)
-		src = NewFileSystemByAbs(srcPath)
+		src = FileSystemApp.NewByAbs(srcPath)
 
 		if src.IsFile {
 			return src.CopyFile(dst.GetDir(), srcFilename, true)

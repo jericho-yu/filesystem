@@ -25,15 +25,19 @@ type (
 	}
 )
 
+var (
+	FileManageApp FileManager
+)
+
 const (
 	FileManagerConfigDriverLocal FileManagerConfigDriver = "LOCAL"
 	FileManagerConfigDriverNexus FileManagerConfigDriver = "NEXUS"
 	FileManagerConfigDriverOss   FileManagerConfigDriver = "OSS"
 )
 
-// NewFileManager 初始化：文件管理器（通过本地文件）
-func NewFileManagerByLocalFile(srcDir, dstDir string, config *FileManagerConfig) (*FileManager, error) {
-	fs := NewFileSystemByAbs(srcDir)
+// NewByLocalFile 初始化：文件管理器（通过本地文件）
+func (FileManager) NewByLocalFile(srcDir, dstDir string, config *FileManagerConfig) (*FileManager, error) {
+	fs := FileSystemApp.NewByAbs(srcDir)
 	if !fs.IsExist {
 		return nil, errors.New("目标文件不存在")
 	}
@@ -52,8 +56,8 @@ func NewFileManagerByLocalFile(srcDir, dstDir string, config *FileManagerConfig)
 	}, nil
 }
 
-// NewFileManagerByBytes 实例化：文件管理器（通过字节）
-func NewFileManagerByBytes(srcFileBytes []byte, dstDir string, config *FileManagerConfig) *FileManager {
+// NewByBytes 实例化：文件管理器（通过字节）
+func (FileManager) NewByBytes(srcFileBytes []byte, dstDir string, config *FileManagerConfig) *FileManager {
 	return &FileManager{
 		dstDir:    dstDir,
 		fileBytes: srcFileBytes,
@@ -78,7 +82,7 @@ func (r *FileManager) Upload(src string) (int64, error) {
 
 // 上传到本地
 func (r *FileManager) uploadToLocal() (int64, error) {
-	dst := NewFileSystemByAbs(r.dstDir)
+	dst := FileSystemApp.NewByAbs(r.dstDir)
 	return dst.WriteBytes(r.fileBytes)
 }
 
